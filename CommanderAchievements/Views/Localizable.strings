@@ -1,0 +1,10 @@
+/* Localizable.strings */
+
+"login.title" = "Player Login";
+"login.username.placeholder" = "Username";
+"login.password.placeholder" = "Password";
+"login.button.title" = "Login";
+"login.success.title" = "Success";
+"login.failure.title" = "Login Failed";
+"login.success.message" = "You're signed in.";
+"login.alert.ok" = "OK";

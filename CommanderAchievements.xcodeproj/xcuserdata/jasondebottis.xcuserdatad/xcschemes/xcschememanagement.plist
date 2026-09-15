@@ -9,6 +9,29 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>CommanderAchievementsProd.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>9CBF281F301990C700C3B72C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>9CBF282E301990C900C3B72C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>9CBF2838301990C900C3B72C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 	</dict>
 </dict>
 </plist>
