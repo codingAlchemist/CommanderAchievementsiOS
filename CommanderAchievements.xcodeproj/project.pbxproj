@@ -32,6 +32,8 @@
 		9CAE0156302EAB5F00482AF3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CAE014C302EAB5F00482AF3 /* ContentView.swift */; };
 		9CAE0157302EAB5F00482AF3 /* Achievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CAE0146302EAB5F00482AF3 /* Achievement.swift */; };
 		9CB0128E30327A9E00E09E38 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB0128D30327A9E00E09E38 /* LoginViewModel.swift */; };
+		9CB22C5D3066033900E59F5E /* AchievementRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB22C5B3066033900E59F5E /* AchievementRow.swift */; };
+		9CB22C5E3066033900E59F5E /* OpponentRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB22C5C3066033900E59F5E /* OpponentRowView.swift */; };
 		9CBCB2FC3050FB8F00B9A2A7 /* DeckDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CBCB2FB3050FB8F00B9A2A7 /* DeckDetailView.swift */; };
 		9CBCB2FE3050FDD100B9A2A7 /* AchievementEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CBCB2FD3050FDD100B9A2A7 /* AchievementEntity.swift */; };
 		9CF76953302ECF39001FE9BB /* Achievements.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF76952302ECF30001FE9BB /* Achievements.swift */; };
@@ -82,6 +84,8 @@
 		9CAE014C302EAB5F00482AF3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9CAE014E302EAB5F00482AF3 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		9CB0128D30327A9E00E09E38 /* LoginViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
+		9CB22C5B3066033900E59F5E /* AchievementRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementRow.swift; sourceTree = "<group>"; };
+		9CB22C5C3066033900E59F5E /* OpponentRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpponentRowView.swift; sourceTree = "<group>"; };
 		9CBCB2FB3050FB8F00B9A2A7 /* DeckDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeckDetailView.swift; sourceTree = "<group>"; };
 		9CBCB2FD3050FDD100B9A2A7 /* AchievementEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementEntity.swift; sourceTree = "<group>"; };
 		9CBF2820301990C700C3B72C /* CommanderAchievements.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CommanderAchievements.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -217,6 +221,8 @@
 		9CF76951302ECEA7001FE9BB /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9CB22C5B3066033900E59F5E /* AchievementRow.swift */,
+				9CB22C5C3066033900E59F5E /* OpponentRowView.swift */,
 				9C77C8C03058BDF5004F96EC /* OpponentView.swift */,
 				9CBCB2FB3050FB8F00B9A2A7 /* DeckDetailView.swift */,
 				9C19DF16304A792900B23654 /* SignUpView.swift */,
@@ -397,6 +403,8 @@
 				9CAE0151302EAB5F00482AF3 /* Player.swift in Sources */,
 				9C10CF85303275A3007E258C /* TextFieldStyle.swift in Sources */,
 				9C6095AE30325D1A0054DBC1 /* AchievementDetailView.swift in Sources */,
+				9CB22C5D3066033900E59F5E /* AchievementRow.swift in Sources */,
+				9CB22C5E3066033900E59F5E /* OpponentRowView.swift in Sources */,
 				9C77C8C73058C7F4004F96EC /* GameViewModel.swift in Sources */,
 				9C77C8C13058BDF5004F96EC /* OpponentView.swift in Sources */,
 				9CF76953302ECF39001FE9BB /* Achievements.swift in Sources */,

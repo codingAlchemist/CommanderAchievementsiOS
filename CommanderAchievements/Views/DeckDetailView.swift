@@ -99,15 +99,6 @@ struct DeckDetailView: View {
                     showPlayerDetail = true
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                if isSyncing {
-                    ProgressView()
-                } else {
-                    Button("Fetch Achievements") {
-                        Task { await fetchAndReplaceAchievements() }
-                    }
-                }
-            }
         }
         .alert("Achievements", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
@@ -116,22 +107,7 @@ struct DeckDetailView: View {
         }
     }
 
-    private func fetchAndReplaceAchievements() async {
-        guard !isSyncing else { return }
-        isSyncing = true
-        do {
-            try await APIService.shared.syncAchievementsToSwiftData(using: modelContext)
-            // provide user feedback
-            alertMessage = "Achievements updated"
-            showAlert = true
-        } catch {
-            // surface the error message
-            alertMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            showAlert = true
-            print("[DeckDetailView] Failed to sync achievements: \(error)")
-        }
-        isSyncing = false
-    }
+    // ...existing code...
 }
 
 private struct LabeledContent: View {

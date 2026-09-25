@@ -8,7 +8,7 @@ public struct GameView: View {
     // State for player's life (defaulted to 40 for a typical MTG start)
     @State private var lifePoints: Int = 40
     // Randomly assigned achievements for preview/demo
-    @State private var currentAchievements: [Achievement]
+    // @State private var currentAchievements: [Achievement] = []
     // State for different counter types (example: poison, energy)
     @State private var poisonCounters: Int = 0
     @State private var energyCounters: Int = 0
@@ -21,16 +21,7 @@ public struct GameView: View {
     // New opponents state replacing commanderPlayers and commanderNames
     @ObservedObject private var gameViewModel: GameViewModel = GameViewModel()
     @Query(sort: \CompletedAchievementEntity.completedAt) private var completedAchievementEntities: [CompletedAchievementEntity]
-
-    public init(achievements: [Achievement] = GameView.randomAchievements()) {
-        self._currentAchievements = State(initialValue: achievements)
-    }
-    
-    struct CommanderDamage: Identifiable, Hashable {
-        let id = UUID()
-        var name: String
-        var damage: Int
-    }
+    @Environment(\.modelContext) private var modelContext: ModelContext
 
     private func isCompleted(_ achievement: Achievement) -> Bool {
         completedAchievementEntities.contains { $0.id == achievement.id }
@@ -70,18 +61,9 @@ public struct GameView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Achievements")
                                 .font(.title2.bold())
-                            ForEach(currentAchievements.prefix(3)) { achievement in
+                            ForEach(gameViewModel.achievements, id: \.id) { achievement in
                                 NavigationLink(destination: AchievementDetailView(achievement: achievement)) {
-                                    AchievementCard(achievement: achievement)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(isCompleted(achievement) ? Color.green : Color.clear, lineWidth: 3)
-                                        )
-                                        .background(
-                                            (isCompleted(achievement) ? Color.green.opacity(0.15) : Color.clear)
-                                        )
-                                        .cornerRadius(12)
-                                        .shadow(radius: 2, y: 1)
+                                    AchievementRow(achievement: achievement, isCompleted: isCompleted(achievement))
                                 }
                             }
                         }
@@ -125,38 +107,16 @@ public struct GameView: View {
                                 Text("No opponents added yet.")
                                     .foregroundStyle(.secondary)
                             } else {
-                                ForEach($gameViewModel.opponents) { $entry in
-                                    
-                                    HStack {
-                                        Text(entry.name ?? "Unnamed Opponent")
-                                            .font(.headline)
-                                        Spacer()
-                                        Button(action: { entry.damageDealt = max(0, entry.damageDealt - 1) }) {
-                                            Image(systemName: "minus.circle")
-                                                .font(.system(size: 24))
+                                ForEach(gameViewModel.opponents) { entry in
+                                    OpponentRowView(entry: entry) {
+                                        if let idx = gameViewModel.opponents.firstIndex(where: { $0.id == entry.id }) {
+                                            gameViewModel.opponents.remove(at: idx)
                                         }
-                                        Text("\(entry.damageDealt)")
-                                            .font(.title3).monospacedDigit()
-                                            .frame(minWidth: 36)
-                                        Button(action: { entry.damageDealt += 1 }) {
-                                            Image(systemName: "plus.circle")
-                                                .font(.system(size: 24))
-                                        }
-                                        Button("+1") { entry.damageDealt += 1 }
-                                            .buttonStyle(.bordered)
-                                        Button("+5") { entry.damageDealt += 5 }
-                                            .buttonStyle(.borderedProminent)
-                                        Button(role: .destructive) {
-                                            if let idx = gameViewModel.opponents.firstIndex(where: { $0.id == entry.id }) {
-                                                gameViewModel.opponents.remove(at: idx)
-                                            }
-                                        } label: {
-                                            Image(systemName: "trash")
+                                    } didChange: { newValue in
+                                        if let idx = gameViewModel.opponents.firstIndex(where: { $0.id == entry.id }) {
+                                            gameViewModel.opponents[idx].damageDealt = newValue
                                         }
                                     }
-                                    .padding(8)
-                                    .background(.regularMaterial)
-                                    .cornerRadius(10)
                                 }
                             }
                         }
@@ -194,13 +154,36 @@ public struct GameView: View {
                     .animation(.spring(), value: showKOOverlay)
                 }
             }
-            .navigationTitle("Game")
+            .task {
+                do {
+                    let vm = gameViewModel
+                    let ctx = modelContext
+                    try await vm.fetchAndReplaceAchievements(using: ctx)
+                } catch {
+                    print("Failed to fetch achievements on appear: \(error)")
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingSettingsSheet = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
+                    HStack(spacing: 12) {
+                        // Refresh achievements assigned to the current player using the shared helper
+                        Button {
+                            Task {
+                                do {
+                                    try await gameViewModel.fetchAndReplaceAchievements(using: modelContext)
+                                } catch {
+                                    print("Failed to refresh achievements: \(error)")
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+
+                        Button {
+                            showingSettingsSheet = true
+                        } label: {
+                            Image(systemName: "gearshape.fill")
+                        }
                     }
                 }
             }
@@ -223,25 +206,7 @@ public struct GameView: View {
                         }
                     }
                     .onChange(of: gameViewModel.opponents) { newOpponents in
-                        // Build a fresh array explicitly to help the type-checker
-                        
-                        for (index, opponent) in newOpponents.enumerated() {
-                            let rawName: String
-                            if let optName = opponent.name {
-                                rawName = optName
-                            } else {
-                                rawName = ""
-                            }
-                            let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-                            let displayName: String
-                            if trimmed.isEmpty {
-                                displayName = "Player #\(index + 1)"
-                            } else {
-                                displayName = trimmed
-                            }
-                            gameViewModel.opponents.append(Opponent(name: displayName, damageDealt: 0))
-                        }
-
+                        // intentionally left blank
                     }
                 }
             }
@@ -249,15 +214,6 @@ public struct GameView: View {
                 showKOOverlay = newValue >= 10
             }
         }
-    }
-    
-    // Helper for random demo data
-    public static func randomAchievements() -> [Achievement] {
-        return [
-            Achievement(id: "1", title: "First Blood", description: "Deal the first damage.", rarity: "Common", category: "damage", points: 5),
-            Achievement(id: "2", title: "Survivor", description: "Remain above 20 life for 5 turns.", rarity: "Rare", category: "life", points: 10),
-            Achievement(id: "3", title: "Combo Master", description: "Execute a 3-card combo.", rarity: "Epic", category: "combo", points: 20)
-        ].shuffled()
     }
 }
 
@@ -300,4 +256,3 @@ private struct KOOverlay: View {
         .accessibilityAddTraits(.isModal)
     }
 }
-

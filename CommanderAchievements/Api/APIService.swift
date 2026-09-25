@@ -199,7 +199,9 @@ extension APIService {
 #if canImport(Alamofire)
         let request = AF.request(url, method: .get).validate()
         let data = try await request.serializingData().value
-        return try decoder.decode([Achievement].self, from: data)
+        let achievements = try decoder.decode([Achievement].self, from: data)
+        try await self.saveAchievementsToLocalFile(achievements) // Save to local file
+        return achievements
 #else
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.GET.rawValue
@@ -223,7 +225,7 @@ extension APIService {
     }
     
     func completeAchievement(playerID: String, achievementID: String, result: @escaping (Result<String, Error>) -> Void) async throws {
-        let url = baseURL.appendingPathComponent("/api/player/\(playerID)/achievements/\(achievementID)")
+        let url = baseURL.appendingPathComponent("/api/player/\(playerID)/achievements")
         let body: [String: String] = ["achievementId": achievementID]
 
 #if canImport(Alamofire)
@@ -236,21 +238,16 @@ extension APIService {
                 case .success:
                     if let statusCode = data.response?.statusCode, statusCode == 200 {
                         result(.success("Achievement completed successfully"))
-                    } 
+                    } else {
+                        let body = data.data.flatMap { String(data: $0, encoding: .utf8) }
+                        let error = data.error
+                        result(.failure(APIError.httpError(statusCode: data.response?.statusCode ?? -1, body: body)))
+                    }
                 case .failure(let error):
                     let statusCode = data.response?.statusCode ?? -1
                     result(.failure(APIError.networkError(underlying: error)))
                 }
             })
-
-//        // Ensure server returned a success status; data is discarded
-//        let value = try await request.serializingData().value
-//        if request.response?.statusCode == 200 {
-//            result(.success("Achievement completed successfully"))
-//        } else {
-//            let statusCode = request.response?.statusCode ?? -1
-//            result(.failure(APIError.httpError(statusCode: statusCode, body: nil)))
-//        }
 #else
         var request = URLRequest(url: url)
         request.httpMethod = HTTPMethod.POST.rawValue

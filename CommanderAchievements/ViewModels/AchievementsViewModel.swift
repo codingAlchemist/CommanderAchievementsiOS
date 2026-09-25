@@ -16,4 +16,8 @@ public class AchievementsViewModel: ObservableObject {
     public func getAchievements() async {
         self.achievements = try! await APIService.shared.fetchAchievements()
     }
+    
+    public func getStartingAchievements() -> [Achievement] {
+        Array(self.achievements.shuffled().prefix(3))
+    }
 }

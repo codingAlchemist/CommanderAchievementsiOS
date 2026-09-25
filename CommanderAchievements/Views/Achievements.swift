@@ -58,6 +58,21 @@ public struct Achievements: View {
                 }
                 .padding(.top, 8)
             }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        Task {
+                            // Clear current list immediately, then fetch new achievements
+                            await MainActor.run {
+                                viewModel.achievements = []
+                            }
+                            await viewModel.getAchievements()
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+            }
             .sheet(item: $selectedAchievement) { achievement in
                 AchievementDetailView(achievement: achievement)
             }
