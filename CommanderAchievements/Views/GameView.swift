@@ -12,12 +12,18 @@ public struct GameView: View {
     // State for different counter types (example: poison, energy)
     @State private var poisonCounters: Int = 0
     @State private var energyCounters: Int = 0
+    @State private var experienceCounters: Int = 0
     @State private var showKOOverlay: Bool = false
     // Commander damage tracking: array of (commander name, damage)
     @State private var newCommanderName: String? = nil
     @State private var showingSettingsSheet: Bool = false
     @State private var trackPoisonCounters: Bool = false
     @State private var trackEnergyCounters: Bool = false
+    @State private var trackExperienceCounters: Bool = false
+    @State private var trackManaCounters: Bool = false
+    @State private var hasLoadedAchievements: Bool = false
+    @State private var isStartingNewGame: Bool = false
+    @State private var currentGameAchievementIDs: Set<String> = []
     // New opponents state replacing commanderPlayers and commanderNames
     @ObservedObject private var gameViewModel: GameViewModel = GameViewModel()
     @Query(sort: \CompletedAchievementEntity.completedAt) private var completedAchievementEntities: [CompletedAchievementEntity]
@@ -26,10 +32,69 @@ public struct GameView: View {
     private func isCompleted(_ achievement: Achievement) -> Bool {
         completedAchievementEntities.contains { $0.id == achievement.id }
     }
+
+    private var completedAchievementIDs: [String] {
+        completedAchievementEntities.map(\.id).sorted()
+    }
+
+    private var completedAchievementsInGame: [CompletedAchievementEntity] {
+        return completedAchievementEntities
+            .filter { currentGameAchievementIDs.contains($0.id) }
+            .sorted { $0.completedAt > $1.completedAt }
+    }
+
+    private var areAllGameAchievementsCompleted: Bool {
+        currentGameAchievementIDs.count == 3 && completedAchievementsInGame.count == currentGameAchievementIDs.count
+    }
+
+    @MainActor
+    private func updateCurrentGameAchievementIDs() {
+        currentGameAchievementIDs = Set(gameViewModel.achievements.map(\.id))
+    }
+
+    @MainActor
+    private func removeCompletedAchievementsFromActiveList() {
+        let completedIDs = Set(completedAchievementEntities.map(\.id))
+        gameViewModel.achievements.removeAll { completedIDs.contains($0.id) }
+    }
+
+    @MainActor
+    private func resetGameValuesForNewGame() {
+        lifePoints = 40
+        poisonCounters = 0
+        energyCounters = 0
+        experienceCounters = 0
+        showKOOverlay = false
+        newCommanderName = nil
+        gameViewModel.opponents = []
+        trackPoisonCounters = false
+        trackEnergyCounters = false
+        trackExperienceCounters = false
+        trackManaCounters = false
+        currentGameAchievementIDs = []
+    }
+
+    private func startNewGame() {
+        Task {
+            isStartingNewGame = true
+            resetGameValuesForNewGame()
+            do {
+                try await gameViewModel.fetchAndReplaceAchievements(using: modelContext, randomizeSelection: true)
+                updateCurrentGameAchievementIDs()
+                removeCompletedAchievementsFromActiveList()
+            } catch {
+                print("Failed to start new game: \(error)")
+            }
+            isStartingNewGame = false
+        }
+    }
+
     
     public var body: some View {
         NavigationStack {
             ZStack {
+                Color.blue.opacity(0.5).ignoresSafeArea()
+
                 ScrollView(.vertical) {
                     VStack(spacing: 32) {
                         // Life Points Display
@@ -61,16 +126,29 @@ public struct GameView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Achievements")
                                 .font(.title2.bold())
+
+                            if areAllGameAchievementsCompleted {
+                                Text("All achievements completed!")
+                                    .font(.headline)
+                                    .foregroundStyle(.green)
+                                    .padding(.vertical, 4)
+                            }
+
                             ForEach(gameViewModel.achievements, id: \.id) { achievement in
                                 NavigationLink(destination: AchievementDetailView(achievement: achievement)) {
                                     AchievementRow(achievement: achievement, isCompleted: isCompleted(achievement))
                                 }
                             }
                         }
+                        .foregroundStyle(.black)
+                        .animation(.easeOut(duration: 0.35), value: completedAchievementIDs)
                         .padding()
                         .background(.thinMaterial)
                         .cornerRadius(16)
                         .shadow(radius: 4, y: 2)
+
+                        CompletedAchievementsCard(achievements: completedAchievementsInGame)
+                            .foregroundStyle(.black)
                         
                         // Commander Damage
                         VStack(alignment: .leading, spacing: 12) {
@@ -133,6 +211,12 @@ public struct GameView: View {
                             if trackEnergyCounters {
                                 CounterView(title: "Energy Counters", count: $energyCounters, color: .blue)
                             }
+                            if trackExperienceCounters {
+                                CounterView(title: "Experience Counters", count: $experienceCounters, color: .orange)
+                            }
+                            if trackManaCounters {
+                                ManaTrackerView()
+                            }
                         }
                         .padding(.top, 8)
                         
@@ -155,15 +239,33 @@ public struct GameView: View {
                 }
             }
             .task {
+                guard !hasLoadedAchievements else { return }
+                hasLoadedAchievements = true
                 do {
                     let vm = gameViewModel
                     let ctx = modelContext
                     try await vm.fetchAndReplaceAchievements(using: ctx)
+                    updateCurrentGameAchievementIDs()
+                    removeCompletedAchievementsFromActiveList()
                 } catch {
+                    hasLoadedAchievements = false
                     print("Failed to fetch achievements on appear: \(error)")
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        startNewGame()
+                    } label: {
+                        if isStartingNewGame {
+                            ProgressView()
+                        } else {
+                            Text("New Game")
+                        }
+                    }
+                    .disabled(isStartingNewGame)
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
                         // Refresh achievements assigned to the current player using the shared helper
@@ -171,6 +273,8 @@ public struct GameView: View {
                             Task {
                                 do {
                                     try await gameViewModel.fetchAndReplaceAchievements(using: modelContext)
+                                    updateCurrentGameAchievementIDs()
+                                    removeCompletedAchievementsFromActiveList()
                                 } catch {
                                     print("Failed to refresh achievements: \(error)")
                                 }
@@ -197,6 +301,12 @@ public struct GameView: View {
                             Toggle(isOn: $trackEnergyCounters) {
                                 Text("Track Energy Counters")
                             }
+                            Toggle(isOn: $trackExperienceCounters) {
+                                Text("Track Experience Counters")
+                            }
+                            Toggle(isOn: $trackManaCounters) {
+                                Text("Track Mana Counters")
+                            }
                         }
                     }
                     .navigationTitle("Settings")
@@ -213,12 +323,18 @@ public struct GameView: View {
             .onChange(of: poisonCounters) { _, newValue in
                 showKOOverlay = newValue >= 10
             }
+            .onChange(of: completedAchievementIDs) { _, _ in
+                Task { @MainActor in
+                    removeCompletedAchievementsFromActiveList()
+                }
+            }
         }
     }
 }
 
 #Preview {
     GameView()
+        .modelContainer(for: [AchievementEntity.self, CompletedAchievementEntity.self], inMemory: true)
 }
 
 private struct KOOverlay: View {

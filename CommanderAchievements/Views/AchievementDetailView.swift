@@ -7,40 +7,55 @@ private let CompletedAchievementsDefaultsKey = "completedAchievementIDs"
 public struct AchievementDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \CompletedAchievementEntity.completedAt) private var completedAchievementEntities: [CompletedAchievementEntity]
     let player = PlayerManager.shared.getPlayerFromPreferences()
 
     let achievement: Achievement
-    
+
     public init(achievement: Achievement) {
         self.achievement = achievement
     }
+
+    private var isAchievementCompleted: Bool {
+        completedAchievementEntities.contains { $0.id == achievement.id }
+    }
+
     public func completeAchievement() async {
+        guard !isAchievementCompleted else { return }
         do {
             try await APIService.shared.completeAchievement(playerID: player?.id ?? "0", achievementID: achievement.id) { result in
                 switch result {
-                case .success(let message):
-                    // Notify listeners that this achievement was completed
-                    NotificationCenter.default.post(name: AchievementCompletedNotification, object: achievement.id)
-                    // Persist completion via Swift Data
-                    let completed = CompletedAchievementEntity(id: achievement.id)
-                    modelContext.insert(completed)
-                    do {
-                        try modelContext.save()
-                    } catch {
-                        print("Failed to save completed achievement to Swift Data: \(error)")
+                case .success:
+                    Task { @MainActor in
+                        // Notify listeners that this achievement was completed
+                        NotificationCenter.default.post(name: AchievementCompletedNotification, object: achievement.id)
+                        // Persist completion via Swift Data
+                        if !completedAchievementEntities.contains(where: { $0.id == achievement.id }) {
+                            let completed = CompletedAchievementEntity(
+                                id: achievement.id,
+                                title: achievement.title,
+                                achievementDescription: achievement.description,
+                                rarity: achievement.rarity,
+                                category: achievement.category,
+                                points: achievement.points
+                            )
+                            modelContext.insert(completed)
+                            do {
+                                try modelContext.save()
+                            } catch {
+                                print("Failed to save completed achievement to Swift Data: \(error)")
+                            }
+                        }
+                        dismiss()
                     }
-                    // Dismiss the detail view
-                    
+
                 case .failure(let error):
-                    // Handle the error appropriately (e.g., show an alert to the user)
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         // Update UI or show an alert here if needed
+                        print("Failed to complete achievement: \(error)")
                     }
                 }
-                
             }
-           
-            await MainActor.run { dismiss() }
         } catch {
             print("Error completing achievement: \(error)")
         }
@@ -56,13 +71,13 @@ public struct AchievementDetailView: View {
                     .foregroundColor(.secondary)
             }
             .padding(.top, 32)
-            
+
             Text(achievement.description)
                 .font(.title3)
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             HStack(spacing: 24) {
                 VStack {
                     Image(systemName: "star.fill")
@@ -76,17 +91,19 @@ public struct AchievementDetailView: View {
                     Text(achievement.category.capitalized)
                         .font(.headline)
                 }
-                
+
             }
             Button {
                 Task {
                     await completeAchievement()
                 }
             } label: {
-                Text("Complete Achievement")
+                Text(isAchievementCompleted ? "Achievement Completed" : "Complete Achievement")
                     .font(.headline)
-                    
-            }.buttonStyle(AppButtonStyle())
+            }
+            .buttonStyle(AppButtonStyle())
+            .disabled(isAchievementCompleted)
+            .opacity(isAchievementCompleted ? 0.65 : 1.0)
             Spacer()
             Button {
                 Task {
@@ -122,4 +139,3 @@ public struct AchievementDetailView: View {
         points: 50
     ))
 }
-

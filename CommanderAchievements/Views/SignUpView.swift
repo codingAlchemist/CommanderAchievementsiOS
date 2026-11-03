@@ -22,77 +22,99 @@ public struct SignUpView: View {
 
     public var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
-                Text("Create an account")
-                    .font(.title2.bold())
-
-                TextField("Full name", text: $playerName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.words)
-
-                TextField("Email", text: $email)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-
-                HStack {
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.blue, Color.purple]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                
+                VStack(spacing: 16) {
                     Group {
-                        if isPasswordVisible {
-                            TextField("Password", text: $password)
-                                .autocapitalization(.none)
+                        Text("Create an account")
+                            .font(.title2.bold())
+                            .padding()
+                        TextField("Full name", text: $playerName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.words)
+
+                        TextField("Email", text: $email)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+
+                        HStack {
+                            Group {
+                                if isPasswordVisible {
+                                    TextField("Password", text: $password)
+                                        .autocapitalization(.none)
+                                } else {
+                                    SecureField("Password", text: $password)
+                                }
+                            }
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                            Button(action: { isPasswordVisible.toggle() }) {
+                                Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+
+                        SecureField("Confirm password", text: $confirmPassword)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                        TextField("Discord username", text: $discordUsername)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .autocapitalization(.none)
+
+                        TextField("Deck selection", text: $deckSelection)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                        TextField("Commander", text: $commander)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }.padding(.horizontal, 16)
+                    
+
+                    if let alertMessage {
+                        Text(alertMessage)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    Button(action: {
+                        signUp()
+                    }) {
+                        if isSigningUp {
+                            ProgressView()
                         } else {
-                            SecureField("Password", text: $password)
+                            Text("Sign Up")
+                                .frame(maxWidth: .infinity)
                         }
                     }
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                    Button(action: { isPasswordVisible.toggle() }) {
-                        Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                            .foregroundColor(.gray)
+                    .buttonStyle(AppButtonStyle())
+                    .disabled(isSigningUp)
+                    .padding(.horizontal, 10)
+                    Spacer()
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.systemBackground))
+                        .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                        )
+                )
+                .padding()
+                .navigationTitle("Sign Up")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Close") { dismiss() }
                     }
                 }
-
-                SecureField("Confirm password", text: $confirmPassword)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                TextField("Discord username", text: $discordUsername)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocapitalization(.none)
-
-                TextField("Deck selection", text: $deckSelection)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                TextField("Commander", text: $commander)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                if let alertMessage {
-                    Text(alertMessage)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-                }
-
-                Button(action: {
-                    signUp()
-                }) {
-                    if isSigningUp {
-                        ProgressView()
-                    } else {
-                        Text("Sign Up")
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .buttonStyle(AppButtonStyle())
-                .disabled(isSigningUp)
-
-                Spacer()
             }
-            .padding()
-            .navigationTitle("Sign Up")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Close") { dismiss() }
-                }
-            }
+            
         }
     }
 

@@ -1,7 +1,7 @@
 /* Localizable.strings */
 
 "login.title" = "Player Login";
-"login.username.placeholder" = "Username";
+"login.username.placeholder" = "Discord Username or Email";
 "login.password.placeholder" = "Password";
 "login.button.title" = "Login";
 "login.success.title" = "Success";
